@@ -18,22 +18,22 @@ func Unpack(inputString string) (string, error) {
 	var (
 		resultString strings.Builder
 		prevSym      rune
-		chunk        string
 	)
 
 	if inputString == "" {
 		return "", nil
 	}
-	for i, curSym := range inputString {
-		if i == 0 && unicode.IsDigit(curSym) {
-			return "", ErrFirstSymbolIsDigit
-		}
+	firstSym := []rune(inputString)[0]
+	if unicode.IsDigit(firstSym) {
+		return "", ErrFirstSymbolIsDigit
+	}
+	for _, curSym := range inputString {
 		if unicode.IsDigit(prevSym) && unicode.IsDigit(curSym) {
 			return "", ErrNumberWasFound
 		}
 		if unicode.IsLetter(prevSym) && unicode.IsLetter(curSym) {
-			chunk = string(prevSym)
-			resultString.WriteString(chunk)
+			chunk := prevSym
+			resultString.WriteRune(chunk)
 		}
 		if unicode.IsLetter(prevSym) && unicode.IsDigit(curSym) {
 			multiplier, err := strconv.Atoi(string(curSym))
@@ -41,11 +41,13 @@ func Unpack(inputString string) (string, error) {
 				err = fmt.Errorf("can't parse string into int: %w", err)
 				return "", err
 			}
-			chunk = strings.Repeat(string(prevSym), multiplier)
+			chunk := strings.Repeat(string(prevSym), multiplier)
 			resultString.WriteString(chunk)
 		}
 		prevSym = curSym
 	}
-	resultString.WriteString(string(prevSym))
+	if !unicode.IsDigit(prevSym) {
+		resultString.WriteRune(prevSym)
+	}
 	return resultString.String(), nil
 }

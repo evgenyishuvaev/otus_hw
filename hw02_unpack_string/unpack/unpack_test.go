@@ -42,3 +42,19 @@ func TestUnpackInvalidString(t *testing.T) {
 		})
 	}
 }
+
+func TestUnpackStringWithLastNumber(t *testing.T) {
+	test := struct {
+		input    string
+		expected string
+	}{
+		input:    "a5",
+		expected: "aaaaa",
+	}
+	t.Run(test.input, func(t *testing.T) {
+		result, err := Unpack(test.input)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, result)
+	})
+
+}
