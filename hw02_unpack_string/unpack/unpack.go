@@ -8,14 +8,19 @@ import (
 	"unicode"
 )
 
-var ErrInvalidString = errors.New("invalid string")
-var ErrFirstSymbolIsDigit = fmt.Errorf("string begins from digit: %w", ErrInvalidString)
-var ErrNumberWasFound = fmt.Errorf("number was found: %w", ErrInvalidString)
+var (
+	ErrInvalidString      = errors.New("invalid string")
+	ErrFirstSymbolIsDigit = fmt.Errorf("string begins from digit: %w", ErrInvalidString)
+	ErrNumberWasFound     = fmt.Errorf("number was found: %w", ErrInvalidString)
+)
 
 func Unpack(inputString string) (string, error) {
-	var resultString strings.Builder
-	var prevSym rune
-	var chunk string
+	var (
+		resultString strings.Builder
+		prevSym      rune
+		chunk        string
+	)
+
 	if inputString == "" {
 		return "", nil
 	}
@@ -40,7 +45,6 @@ func Unpack(inputString string) (string, error) {
 			resultString.WriteString(chunk)
 		}
 		prevSym = curSym
-
 	}
 	resultString.WriteString(string(prevSym))
 	return resultString.String(), nil
