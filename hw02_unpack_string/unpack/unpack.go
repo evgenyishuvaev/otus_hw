@@ -18,6 +18,7 @@ func Unpack(inputString string) (string, error) {
 	var (
 		resultString strings.Builder
 		prevSym      rune
+		blankSym     rune
 	)
 
 	if inputString == "" {
@@ -31,11 +32,13 @@ func Unpack(inputString string) (string, error) {
 		if unicode.IsDigit(prevSym) && unicode.IsDigit(curSym) {
 			return "", ErrNumberWasFound
 		}
-		if unicode.IsLetter(prevSym) && unicode.IsLetter(curSym) {
-			chunk := prevSym
-			resultString.WriteRune(chunk)
+		if !unicode.IsDigit(prevSym) && !unicode.IsDigit(curSym) {
+			if prevSym != blankSym {
+				chunk := prevSym
+				resultString.WriteRune(chunk)
+			}
 		}
-		if unicode.IsLetter(prevSym) && unicode.IsDigit(curSym) {
+		if !unicode.IsDigit(prevSym) && unicode.IsDigit(curSym) {
 			multiplier, err := strconv.Atoi(string(curSym))
 			if err != nil {
 				err = fmt.Errorf("can't parse string into int: %w", err)
