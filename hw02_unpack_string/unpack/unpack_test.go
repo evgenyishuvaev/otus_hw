@@ -16,7 +16,7 @@ func TestUnpack(t *testing.T) {
 		{input: "abccd", expected: "abccd"},
 		{input: "", expected: ""},
 		{input: "aaa0b", expected: "aab"},
-		// uncomment if task with asterisk completed
+		{input: "aa.3b", expected: "aa...b"},
 		// {input: `qwe\4\5`, expected: `qwe45`},
 		// {input: `qwe\45`, expected: `qwe44444`},
 		// {input: `qwe\\5`, expected: `qwe\\\\\`},
@@ -42,4 +42,19 @@ func TestUnpackInvalidString(t *testing.T) {
 			require.Truef(t, errors.Is(err, ErrInvalidString), "actual error %q", err)
 		})
 	}
+}
+
+func TestUnpackStringWithLastNumber(t *testing.T) {
+	test := struct {
+		input    string
+		expected string
+	}{
+		input:    "a5",
+		expected: "aaaaa",
+	}
+	t.Run(test.input, func(t *testing.T) {
+		result, err := Unpack(test.input)
+		require.NoError(t, err)
+		require.Equal(t, test.expected, result)
+	})
 }
