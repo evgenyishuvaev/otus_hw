@@ -91,3 +91,22 @@ func TestTop10V2(t *testing.T) {
 		require.Equal(t, expected, Top10(text))
 	})
 }
+
+func TestTop10Alphabet(t *testing.T) {
+	t.Run("with more same count word", func(t *testing.T) {
+		text := "z x c v b n m e r t u i o p a b"
+		expected := []string{
+			"b",
+			"a",
+			"c",
+			"e",
+			"i",
+			"m",
+			"n",
+			"o",
+			"p",
+			"r",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+}

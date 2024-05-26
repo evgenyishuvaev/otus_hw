@@ -49,8 +49,9 @@ func Top10(in string) []string {
 	}
 
 	freqWords = sortSliceByCount(freqWords, countMap)
+	freqWords = finalSortSliceByLexicAndCount(freqWords, countMap)
 	if len(freqWords) > 10 {
-		return finalSortSliceByLexicAndCount(freqWords[:10], countMap)
+		return freqWords[:10]
 	}
-	return finalSortSliceByLexicAndCount(freqWords, countMap)
+	return freqWords
 }
