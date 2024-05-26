@@ -80,3 +80,14 @@ func TestTop10(t *testing.T) {
 		}
 	})
 }
+
+func TestTop10V2(t *testing.T) {
+	t.Run("with more spaces", func(t *testing.T) {
+		text := "\n\n\n\nТут\r\nТут    \n\nтут"
+		expected := []string{
+			"Тут", // 2
+			"тут", // 1
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+}
