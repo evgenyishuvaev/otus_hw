@@ -80,3 +80,33 @@ func TestTop10(t *testing.T) {
 		}
 	})
 }
+
+func TestTop10V2(t *testing.T) {
+	t.Run("with more spaces", func(t *testing.T) {
+		text := "\n\n\n\nТут\r\nТут    \n\nтут"
+		expected := []string{
+			"Тут", // 2
+			"тут", // 1
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+}
+
+func TestTop10Alphabet(t *testing.T) {
+	t.Run("with more same count word", func(t *testing.T) {
+		text := "z x c v b n m e r t u i o p a b"
+		expected := []string{
+			"b",
+			"a",
+			"c",
+			"e",
+			"i",
+			"m",
+			"n",
+			"o",
+			"p",
+			"r",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+}
