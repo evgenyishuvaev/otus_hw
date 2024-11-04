@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require" //nolint:all
 )
 
 func TestCache(t *testing.T) {
@@ -50,7 +50,67 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		c := NewCache(5)
+
+		wasInCache := c.Set("aaa", 100)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("bbb", 200)
+		require.False(t, wasInCache)
+
+		c.Clear()
+
+		val, ok := c.Get("aaa")
+		require.False(t, ok)
+		require.Equal(t, nil, val)
+	})
+
+	t.Run("overflow", func(t *testing.T) {
+		c := NewCache(3)
+
+		wasInCache := c.Set("aaa", 100)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("bbb", 200)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("ccc", 300)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("ddd", 400)
+		require.False(t, wasInCache)
+
+		val, wasInCache := c.Get("aaa")
+		require.False(t, wasInCache)
+		require.Equal(t, val, nil)
+	})
+
+	t.Run("LRU item deleted", func(t *testing.T) {
+		c := NewCache(3)
+
+		wasInCache := c.Set("aaa", 100)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("bbb", 200)
+		require.False(t, wasInCache)
+
+		wasInCache = c.Set("ccc", 300)
+		require.False(t, wasInCache)
+
+		val, wasInCache := c.Get("ccc")
+		require.True(t, wasInCache)
+		require.Equal(t, val, 300)
+
+		val, wasInCache = c.Get("bbb")
+		require.True(t, wasInCache)
+		require.Equal(t, val, 200)
+
+		wasInCache = c.Set("ddd", 400)
+		require.False(t, wasInCache)
+
+		val, wasInCache = c.Get("aaa")
+		require.False(t, wasInCache)
+		require.Equal(t, val, nil)
 	})
 }
 
