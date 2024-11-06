@@ -8,6 +8,11 @@ type Cache interface {
 	Clear()
 }
 
+type Item struct {
+	key   Key
+	value interface{}
+}
+
 type lruCache struct {
 	capacity int
 	queue    List
@@ -17,15 +22,18 @@ type lruCache struct {
 func (cache *lruCache) Set(key Key, value interface{}) bool {
 	item, ok := cache.items[key]
 
-	if cache.isFull() {
-		cache.deleteLRUItem()
-	}
-
 	if ok {
-		item.Value = value
+		item.Value.(*Item).value = value
 		cache.queue.MoveToFront(item)
 	} else {
-		item := cache.queue.PushFront(value)
+		if cache.isFull() {
+			cache.deleteLRUItem()
+		}
+		valueItem := &Item{
+			key:   key,
+			value: value,
+		}
+		item := cache.queue.PushFront(valueItem)
 		cache.items[key] = item
 	}
 	return ok
@@ -33,12 +41,9 @@ func (cache *lruCache) Set(key Key, value interface{}) bool {
 
 func (cache *lruCache) deleteLRUItem() {
 	lastItem := cache.queue.Back()
-	for key, val := range cache.items {
-		if val.Value == lastItem.Value {
-			delete(cache.items, key)
-			break
-		}
-	}
+	lastItemKey := lastItem.Value.(*Item).key
+
+	delete(cache.items, lastItemKey)
 	cache.queue.Remove(lastItem)
 }
 
@@ -48,7 +53,7 @@ func (cache *lruCache) Get(key Key) (interface{}, bool) {
 		return nil, false
 	}
 	cache.queue.MoveToFront(item)
-	return item.Value, ok
+	return item.Value.(*Item).value, ok
 }
 
 func (cache *lruCache) isFull() bool {
