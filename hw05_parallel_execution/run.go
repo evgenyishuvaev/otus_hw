@@ -22,10 +22,10 @@ func (w *workState) IncreaseJobs() {
 	w.jobInWork++
 }
 
-func (w *workState) ReduceJobs() {
+func (w *workState) ClearCntJobs() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.jobInWork--
+	w.jobInWork = 0
 }
 
 func (w *workState) IncreaseErrors() {
@@ -69,56 +69,53 @@ type Task func() error
 
 func Run(tasks []Task, n, m int) error {
 	wg := sync.WaitGroup{}
+	defer wg.Wait()
+
 	tasksCh := make(chan Task, n)
-	quitCh := make(chan struct{})
 	state := workState{
 		maxJobs:   n,
 		maxErrors: m,
 	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		Consume(tasksCh, quitCh, &state)
+		Consume(tasksCh, &state)
 	}()
 
 	for _, task := range tasks {
 		if state.IsMaxErrorsRecieved() {
-			quitCh <- struct{}{}
+			close(tasksCh)
 			return ErrErrorsLimitExceeded
 		}
 		tasksCh <- task
 	}
 	close(tasksCh)
-	wg.Wait()
 	return nil
 }
 
-func Consume(in <-chan Task, quitCh <-chan struct{}, state *workState) {
+func Consume(in <-chan Task, state *workState) {
+	defer state.wg.Wait()
 	for task := range in {
-		select {
-		case <-quitCh:
+		if state.IsMaxErrorsRecieved() {
 			return
-		default:
 		}
 
 		// проверяем кол-во заупущенных тасок
 		if state.IsMaxJobsRunnig() {
 			state.wg.Wait()
+			state.ClearCntJobs()
 		}
 
 		state.wg.Add(1)
 		state.IncreaseJobs()
 		go func() {
 			defer state.wg.Done()
-			defer state.ReduceJobs()
-			if state.IsMaxErrorsRecieved() {
-				return
-			}
+
 			err := task()
 			if err != nil {
 				state.IncreaseErrors()
 			}
 		}()
 	}
-	state.wg.Wait()
 }
