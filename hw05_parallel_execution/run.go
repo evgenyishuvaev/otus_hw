@@ -9,41 +9,15 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type workState struct {
 	wg        sync.WaitGroup
-	maxJobs   int
 	maxErrors int
 	mu        sync.Mutex
-	jobInWork int
 	cntErrors int
-}
-
-func (w *workState) IncreaseJobs() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.jobInWork++
-}
-
-func (w *workState) ClearCntJobs() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.jobInWork = 0
 }
 
 func (w *workState) IncreaseErrors() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.cntErrors++
-}
-
-func (w *workState) ReduceErrors() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.cntErrors--
-}
-
-func (w *workState) JobsInWork() int {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.jobInWork
 }
 
 func (w *workState) CntErrors() int {
@@ -61,61 +35,42 @@ func (w *workState) IsMaxErrorsRecieved() bool {
 	return cntErrors == w.maxErrors || cntErrors >= w.maxErrors
 }
 
-func (w *workState) IsMaxJobsRunnig() bool {
-	return w.JobsInWork() == w.maxJobs
-}
-
 type Task func() error
 
 func Run(tasks []Task, n, m int) error {
-	wg := sync.WaitGroup{}
-	defer wg.Wait()
-
-	tasksCh := make(chan Task, n)
+	var err error
 	state := workState{
-		maxJobs:   n,
 		maxErrors: m,
 	}
+	defer state.wg.Wait()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		Consume(tasksCh, &state)
-	}()
+	tasksCh := make(chan Task, n)
+
+	for i := 0; i < n; i++ {
+		go Worker(tasksCh, &state)
+	}
 
 	for _, task := range tasks {
 		if state.IsMaxErrorsRecieved() {
-			close(tasksCh)
-			return ErrErrorsLimitExceeded
+			err = ErrErrorsLimitExceeded
+			break
 		}
 		tasksCh <- task
 	}
 	close(tasksCh)
-	return nil
+	return err
 }
 
-func Consume(in <-chan Task, state *workState) {
-	defer state.wg.Wait()
+func Worker(in <-chan Task, state *workState) {
+	state.wg.Add(1)
+	defer state.wg.Done()
 	for task := range in {
 		if state.IsMaxErrorsRecieved() {
 			return
 		}
-
-		// проверяем кол-во заупущенных тасок
-		if state.IsMaxJobsRunnig() {
-			state.wg.Wait()
-			state.ClearCntJobs()
+		err := task()
+		if err != nil {
+			state.IncreaseErrors()
 		}
-
-		state.wg.Add(1)
-		state.IncreaseJobs()
-		go func() {
-			defer state.wg.Done()
-
-			err := task()
-			if err != nil {
-				state.IncreaseErrors()
-			}
-		}()
 	}
 }
