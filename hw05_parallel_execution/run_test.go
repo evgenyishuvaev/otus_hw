@@ -90,4 +90,33 @@ func TestRun(t *testing.T) {
 		require.Nil(t, err, "must be not error")
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all task were completed")
 	})
+
+	t.Run("errors at the end queue", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCount int32
+
+		for i := 0; i < tasksCount-5; i++ {
+			tasks = append(tasks, func() error {
+				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+				atomic.AddInt32(&runTasksCount, 1)
+				return nil
+			})
+		}
+
+		for i := 0; i < 5; i++ {
+			err := fmt.Errorf("error from task %d", i)
+			tasks = append(tasks, func() error {
+				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+				atomic.AddInt32(&runTasksCount, 1)
+				return err
+			})
+		}
+
+		workersCount := 10
+		maxErrorsCount := 5
+		err := Run(tasks, workersCount, maxErrorsCount)
+		require.NotNil(t, err, "must be error")
+	})
 }

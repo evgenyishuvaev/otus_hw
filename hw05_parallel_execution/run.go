@@ -35,16 +35,21 @@ func (w *workState) IsMaxErrorsRecieved() bool {
 	return cntErrors == w.maxErrors || cntErrors >= w.maxErrors
 }
 
+func (w *workState) IsSuccess() (bool, error) {
+	if w.IsMaxErrorsRecieved() {
+		return false, ErrErrorsLimitExceeded
+	}
+	return true, nil
+}
+
 type Task func() error
 
 func Run(tasks []Task, n, m int) error {
 	state := workState{
 		maxErrors: m,
 	}
-	defer state.wg.Wait()
 
 	tasksCh := make(chan int)
-	defer close(tasksCh)
 
 	worker := func() {
 		state.wg.Add(1)
@@ -64,9 +69,14 @@ func Run(tasks []Task, n, m int) error {
 
 	for indx := range tasks {
 		if state.IsMaxErrorsRecieved() {
-			return ErrErrorsLimitExceeded
+			break
 		}
 		tasksCh <- indx
 	}
-	return nil
+
+	close(tasksCh)
+	state.wg.Wait()
+
+	_, err := state.IsSuccess()
+	return err
 }
