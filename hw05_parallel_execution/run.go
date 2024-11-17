@@ -38,39 +38,35 @@ func (w *workState) IsMaxErrorsRecieved() bool {
 type Task func() error
 
 func Run(tasks []Task, n, m int) error {
-	var err error
 	state := workState{
 		maxErrors: m,
 	}
 	defer state.wg.Wait()
 
-	tasksCh := make(chan Task, n)
+	tasksCh := make(chan int)
+	defer close(tasksCh)
+
+	worker := func() {
+		state.wg.Add(1)
+		defer state.wg.Done()
+
+		for indx := range tasksCh {
+			err := tasks[indx]()
+			if err != nil {
+				state.IncreaseErrors()
+			}
+		}
+	}
 
 	for i := 0; i < n; i++ {
-		go Worker(tasksCh, &state)
+		go worker()
 	}
 
-	for _, task := range tasks {
+	for indx := range tasks {
 		if state.IsMaxErrorsRecieved() {
-			err = ErrErrorsLimitExceeded
-			break
+			return ErrErrorsLimitExceeded
 		}
-		tasksCh <- task
+		tasksCh <- indx
 	}
-	close(tasksCh)
-	return err
-}
-
-func Worker(in <-chan Task, state *workState) {
-	state.wg.Add(1)
-	defer state.wg.Done()
-	for task := range in {
-		if state.IsMaxErrorsRecieved() {
-			return
-		}
-		err := task()
-		if err != nil {
-			state.IncreaseErrors()
-		}
-	}
+	return nil
 }
