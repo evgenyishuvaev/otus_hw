@@ -1,13 +1,12 @@
 package hw06pipelineexecution
 
 import (
-	"log"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require" //nolint:all
 )
 
 const (
@@ -102,7 +101,7 @@ func TestAllStageStop(t *testing.T) {
 	}
 	wg := sync.WaitGroup{}
 	// Stage generator
-	g := func(s string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v interface{}) interface{}) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			wg.Add(1)
@@ -151,6 +150,5 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
-
 	})
 }

@@ -9,7 +9,7 @@ type (
 type Stage func(in In) (out Out)
 
 func stageHandler(in In, done In, stage Stage) Out {
-	var inCh Bi = make(Bi)
+	inCh := make(Bi)
 	go func() {
 		defer close(inCh)
 		for {
@@ -31,7 +31,7 @@ func stageHandler(in In, done In, stage Stage) Out {
 
 	outCh := stage(inCh)
 
-	var resCh Bi = make(Bi)
+	resCh := make(Bi)
 	go func() {
 		defer close(resCh)
 		for {
