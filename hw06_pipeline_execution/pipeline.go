@@ -8,28 +8,56 @@ type (
 
 type Stage func(in In) (out Out)
 
-func ExecutePipeline(in In, done In, stages ...Stage) Out {
-	// log.Println("Старт пайплайна")
-	var outCh Out
+func stageHandler(in In, done In, stage Stage) Out {
 	var inCh Bi = make(Bi)
-
 	go func() {
 		defer close(inCh)
-		for val := range in {
-			// log.Printf("на очереди %d", val.(int))
+		for {
 			select {
 			case <-done:
 				return
-			case inCh <- val:
-				// log.Printf("Записываем в канал %d", val.(int))
+			case val, ok := <-in:
+				if !ok {
+					return
+				}
+				select {
+				case inCh <- val:
+				case <-done:
+					return
+				}
 			}
 		}
 	}()
 
-	outCh = inCh
-	// outCh = in
+	outCh := stage(inCh)
+
+	var resCh Bi = make(Bi)
+	go func() {
+		defer close(resCh)
+		for {
+			select {
+			case <-done:
+				return
+			case val, ok := <-outCh:
+				if !ok {
+					return
+				}
+				select {
+				case resCh <- val:
+				case <-done:
+					return
+				}
+			}
+		}
+	}()
+	return resCh
+}
+
+func ExecutePipeline(in In, done In, stages ...Stage) Out {
+	var outCh Out
+	outCh = in
 	for _, stage := range stages {
-		outCh = stage(outCh)
+		outCh = stageHandler(outCh, done, stage)
 	}
 	return outCh
 }
