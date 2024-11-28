@@ -8,31 +8,18 @@ type (
 
 type Stage func(in In) (out Out)
 
-func stageHandler(in In, done In, stage Stage) Out {
-	inCh := make(Bi)
-	go func() {
-		defer close(inCh)
-		for {
-			select {
-			case <-done:
-				return
-			case val, ok := <-in:
-				if !ok {
-					return
-				}
-				select {
-				case inCh <- val:
-				case <-done:
-					return
-				}
-			}
-		}
-	}()
+func garbage(ch Out) {
+	for val := range ch {
+		_ = val
+	}
+}
 
-	outCh := stage(inCh)
+func stageHandler(in In, done In, stage Stage) Out {
+	outCh := stage(in)
 
 	resCh := make(Bi)
 	go func() {
+		defer garbage(outCh)
 		defer close(resCh)
 		for {
 			select {
@@ -55,7 +42,27 @@ func stageHandler(in In, done In, stage Stage) Out {
 
 func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	var outCh Out
-	outCh = in
+	inCh := make(Bi)
+	go func() {
+		defer close(inCh)
+		for {
+			select {
+			case <-done:
+				return
+			case val, ok := <-in:
+				if !ok {
+					return
+				}
+				select {
+				case inCh <- val:
+				case <-done:
+					return
+				}
+			}
+		}
+	}()
+
+	outCh = inCh
 	for _, stage := range stages {
 		outCh = stageHandler(outCh, done, stage)
 	}
