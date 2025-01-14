@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 )
 
 var (
@@ -16,7 +17,21 @@ func init() {
 	flag.Int64Var(&offset, "offset", 0, "offset in input file")
 }
 
+func checkInputFlags() error {
+	if from == "" || to == "" {
+		return ErrMissingRequiredFlags
+	}
+	return nil
+}
+
 func main() {
 	flag.Parse()
-	// Place your code here.
+	err := checkInputFlags()
+	if err != nil {
+		err = fmt.Errorf("error: %w", err)
+		fmt.Println(err)
+		flag.Usage()
+		return
+	}
+	Copy(from, to, offset, limit)
 }
