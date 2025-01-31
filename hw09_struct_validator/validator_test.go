@@ -37,24 +37,49 @@ type (
 )
 
 func TestValidate(t *testing.T) {
+	// слайс структур для валидации
 	tests := []struct {
 		in          interface{}
 		expectedErr error
 	}{
 		{
-			// Place your code here.
+			User{
+				ID:     "111111111111111111111111111111111111111111111",
+				Name:   "Igor",
+				Age:    100,
+				Email:  "igor@example.ru",
+				Role:   "not in",
+				Phones: []string{"89997776655"},
+				meta:   nil,
+			},
+			ValidationErrors{
+				ValidationError{
+					"ID",
+					ErrStringLenGreater,
+				},
+				ValidationError{
+					"Age",
+					ErrIntegerValueLess,
+				},
+			},
 		},
-		// ...
-		// Place your code here.
+		{
+			"asdasd",
+			nil,
+		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
 			tt := tt
 			t.Parallel()
-
-			// Place your code here.
-			_ = tt
+			Validate(tt.in)
 		})
 	}
 }
+
+// func TestParseConstraints(t *testing.T) {
+// t.Run("regexp with '|' char", func(t *testing.T) {})
+// t.Run("regexp with ':' char", func(t *testing.T) {})
+//
+// }
